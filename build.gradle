@@ -1,0 +1,61 @@
+plugins {
+	id 'net.fabricmc.fabric-loom-remap' version '1.17-SNAPSHOT'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+repositories {
+	maven {
+		url = "https://repo.codemc.io/repository/relativitymc/"
+	}
+}
+
+dependencies {
+	mappings "org.relativitymc:modern-yarn:26.1.2+build.1:v2"
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+
+	implementation 'net.bytebuddy:byte-buddy:1.14.10'
+	implementation "de.florianreuth:asmfabricloader:2.2.0"
+	implementation 'net.bytebuddy:byte-buddy-agent:1.14.10'
+	implementation include('io.github.classgraph:classgraph:4.8.177')
+
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+loom {
+	useIntermediateMappings = true
+	intermediaryUrl = 'https://repo.codemc.io/repository/relativitymc/org/relativitymc/intermediary/%1$s/intermediary-%1$s-v2.jar'
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+java {
+	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+
+}
+
+
+jar {
+	def projectName = project.name
+	inputs.property "projectName", projectName
+
+	from("LICENSE") {
+		rename { "${it}_$projectName"}
+	}
+}

@@ -1,0 +1,17 @@
+out/
+run/
+build/
+.idea/
+classes/
+.gradle/
+
+*.iml
+*.ipr
+*.iws
+*.jfr
+*.hprof
+hs_err_*.log
+replay_*.log
+
+# assembled via buildscript
+src/main/resources/data/digamma/ccscript.bin

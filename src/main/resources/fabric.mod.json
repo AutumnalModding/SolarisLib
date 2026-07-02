@@ -1,0 +1,35 @@
+{
+    "schemaVersion": 1,
+    "id": "solaris",
+    "version": "${version}",
+    "name": "Solaris Library",
+    "description": "Everyone AND their grandma, huh?",
+    "authors": [
+        "LilyflowerFDL"
+    ],
+    "contact": {
+        "homepage": "https://hypercube.gdn/solaris",
+        "sources": "https://github.com/AutumnalModding/SolarisLib"
+    },
+    "license": "GPLv3",
+    "environment": "*",
+    "entrypoints": {
+        "afl:prePrePreLaunch": [
+            "gdn.hypercube.solaris.core.SolarisBootstrap"
+        ],
+        "preLaunch": [
+            "gdn.hypercube.solaris.core.SolarisBootstrap",
+            "gdn.hypercube.solaris.generator.resource.ResourcePackGenerator"
+        ],
+        "main": [
+            "gdn.hypercube.solaris.messaging.SolarisNetworkHandler",
+            "gdn.hypercube.solaris.generator.content.RegistryInitializer"
+        ]
+    },
+    "depends": {
+        "fabricloader": ">=0.19.3",
+        "minecraft": "~26.1.2",
+        "java": ">=25",
+        "fabric-api": "*"
+    }
+}
