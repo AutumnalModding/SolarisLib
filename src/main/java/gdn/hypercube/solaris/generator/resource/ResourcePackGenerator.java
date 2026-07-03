@@ -14,9 +14,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
-import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
 import net.minecraft.util.Identifier;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -24,7 +24,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
-public class ResourcePackGenerator implements PreLaunchEntrypoint {
+public class ResourcePackGenerator implements ModInitializer {
     public static final Logger LOGGER = LogManager.getLogger("Solaris Asset Generator");
     public static final List<String> TARGETS = new ArrayList<>();
 
@@ -32,7 +32,7 @@ public class ResourcePackGenerator implements PreLaunchEntrypoint {
     private static final Map<String, ModelGenerator> GENERATORS = new HashMap<>();
 
     @Override
-    public void onPreLaunch() {
+    public void onInitialize() {
         FabricLoader loader = FabricLoader.getInstance();
         try {
             FileUtils.deleteDirectory(Path.of("resourcepacks/solaris").toFile());
