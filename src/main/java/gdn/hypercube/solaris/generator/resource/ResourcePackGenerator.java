@@ -31,6 +31,7 @@ public class ResourcePackGenerator implements PreLaunchEntrypoint {
 
     @Override
     public void onPreLaunch() {
+        LOGGER.info("Extracting and copying assets...");
         FabricLoader loader = FabricLoader.getInstance();
         try {
             FileUtils.deleteDirectory(Path.of("resourcepacks/solaris").toFile());
