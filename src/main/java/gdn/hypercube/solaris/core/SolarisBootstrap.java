@@ -35,7 +35,7 @@ public class SolarisBootstrap implements PrePrePreLaunchEntrypoint, PreLaunchEnt
 
     private void scanClasspath() {
         if (!SCANNED_CLASSES) {
-            SolarisBootstrap.LOGGER.debug("Scanning class transformers...");
+            LOGGER.debug("Scanning class transformers...");
             List<Class<SolarisTransformer.Class>> transformers = ClasspathScanning.implementations(SolarisTransformer.Class.class, false);
             List<Class<SolarisTransformer.Global>> globals = ClasspathScanning.implementations(SolarisTransformer.Global.class, false);
             transformers.forEach(SolarisTransformerLoader::parseTransformer);
@@ -55,6 +55,7 @@ public class SolarisBootstrap implements PrePrePreLaunchEntrypoint, PreLaunchEnt
     }
 
     static {
+        LOGGER.debug("Bootstrapping mode...");
         MODE = switch (System.getProperty("solaris.patcher")) {
             case "mixin" -> TransformerMode.MIXIN_ONLY;
             case "none" -> TransformerMode.NONE;
