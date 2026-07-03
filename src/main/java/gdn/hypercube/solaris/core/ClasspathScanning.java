@@ -1,10 +1,12 @@
 package gdn.hypercube.solaris.core;
 
+import gdn.hypercube.solaris.util.MiscHelpers;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ClassInfoList;
 import io.github.classgraph.ScanResult;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
@@ -66,5 +68,9 @@ public class ClasspathScanning {
     @SuppressWarnings("unchecked")
     private static <T> List<Class<T>> __LOAD(Class<T> superclass) {
         return (List<Class<T>>) (List<?>) CACHE.get(superclass);
+    }
+
+    public static <T> void prioritize(List<Class<T>> target) {
+        target.sort(Comparator.comparingInt(MiscHelpers::prioritize));
     }
 }

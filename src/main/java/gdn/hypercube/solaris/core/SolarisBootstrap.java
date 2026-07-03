@@ -1,5 +1,7 @@
 package gdn.hypercube.solaris.core;
 
+import gdn.hypercube.solaris.util.Priority;
+import java.util.Comparator;
 import java.util.List;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -23,12 +25,14 @@ public class SolarisBootstrap implements PrePrePreLaunchEntrypoint, PreLaunchEnt
     public static void oopsie(Logger logger, String message, Throwable cause) {
         logger.fatal("/// SOMEBODY SET US UP THE BOMB ///");
         logger.fatal(message);
-        logger.fatal("CAUSE: {}: {}", pp(cause), cause.getMessage());
-        Throwable root = cause.getCause();
-        logger.fatal("ROOT CAUSE: {}: {}", (root == null ? "N/A" : pp(root)), (root == null ? "N/A" : root.getMessage()));
-        logger.fatal("DUMPING STACKTRACE...");
-        for (StackTraceElement element : cause.getStackTrace()) {
-            logger.fatal(element.toString());
+        if (cause != null) {
+            logger.fatal("CAUSE: {}: {}", pp(cause), cause.getMessage());
+            Throwable root = cause.getCause();
+            logger.fatal("ROOT CAUSE: {}: {}", (root == null ? "N/A" : pp(root)), (root == null ? "N/A" : root.getMessage()));
+            logger.fatal("DUMPING STACKTRACE...");
+            for (StackTraceElement element : cause.getStackTrace()) {
+                logger.fatal(element.toString());
+            }
         }
         logger.fatal("/// SOMEBODY SET US UP THE BOMB ///");
     }
@@ -37,14 +41,17 @@ public class SolarisBootstrap implements PrePrePreLaunchEntrypoint, PreLaunchEnt
         if (!SCANNED_CLASSES) {
             LOGGER.debug("Scanning class transformers...");
             List<Class<SolarisTransformer.Class>> transformers = ClasspathScanning.implementations(SolarisTransformer.Class.class, false);
-            List<Class<SolarisTransformer.Global>> globals = ClasspathScanning.implementations(SolarisTransformer.Global.class, false);
+            List<Class<SolarisTransformer.Global>> superpatchers = ClasspathScanning.implementations(SolarisTransformer.Global.class, false);
+            ClasspathScanning.prioritize(transformers);
+            ClasspathScanning.prioritize(superpatchers);
             transformers.forEach(SolarisTransformerLoader::parseTransformer);
-            globals.forEach(SolarisTransformerLoader::parseTransformer);
+            superpatchers.forEach(SolarisTransformerLoader::parseTransformer);
             SolarisTransformerLoader.TRANSFORMERS.forEach(SolarisTransformerLoader::LTR);
             SolarisTransformerLoader.SUPERPATCHERS.forEach(SolarisTransformerLoader::LTR);
             SCANNED_CLASSES = true;
         }
     }
+
 
     public void onPreLaunch() {
         scanClasspath();

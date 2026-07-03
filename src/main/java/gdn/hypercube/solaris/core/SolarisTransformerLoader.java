@@ -1,5 +1,6 @@
 package gdn.hypercube.solaris.core;
 
+import gdn.hypercube.solaris.util.ChainedList;
 import java.io.IOException;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.reflect.Constructor;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,11 +40,10 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
     private static final Map<String, byte[]> CACHE = new HashMap<>();
     private static boolean CASCADING = false;
     static final ClassLoader LOADER = SolarisTransformerLoader.class.getClassLoader();
-    static final Map<String, Class<? extends SolarisTransformer>> TRANSFORMERS = new HashMap<>();
-    static final Map<String, Class<? extends SolarisTransformer>> SUPERPATCHERS = new HashMap<>();
+    static final Map<String, ChainedList<Class<? extends SolarisTransformer>>> TRANSFORMERS = new LinkedHashMap<>();
+    static final Map<String, ChainedList<Class<? extends SolarisTransformer>>> SUPERPATCHERS = new LinkedHashMap<>();
 
     @Override
-    @SuppressWarnings("DataFlowIssue")
     public byte[] transform(ClassLoader loader, String name, Class<?> clazz, ProtectionDomain domain, byte[] bytes) {
         ClassNode node = new ClassNode();
         ClassReader reader = new ClassReader(bytes);
@@ -53,20 +54,20 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
         if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Loading: {}", name);
 
         if (TRANSFORMERS.containsKey(name)) {
-            SolarisBootstrap.LOGGER.debug("Transforming {} with transformer {} directly", name, TRANSFORMERS.get(name).getSimpleName());
-            bytes = transform(name, TRANSFORMERS, bytes, false);
+            ArrayList<Class<? extends SolarisTransformer>> transformers = TRANSFORMERS.get(name).arrayify();
+            bytes = transform(name, transformers, bytes, false);
         }
 
         if (SUPERPATCHERS.containsKey(node.superName)) { // TODO: resolve chain
-            SolarisBootstrap.LOGGER.debug("Transforming {} via direct superclass {} with transformer {}", name, node.superName, SUPERPATCHERS.get(node.superName).getSimpleName());
-            bytes = transform(node.superName, SUPERPATCHERS, bytes, true);
+            ArrayList<Class<? extends SolarisTransformer>> transformers = SUPERPATCHERS.get(name).arrayify();
+            bytes = transform(node.superName, transformers, bytes, true);
         }
 
         List<String> interfaces = new ArrayList<>(node.interfaces);
         for (String iface : interfaces) {
             if (TRANSFORMERS.containsKey(iface)) {
-                SolarisBootstrap.LOGGER.debug("Transforming {} via interface {} with transformer {}", name, iface, TRANSFORMERS.get(iface).getSimpleName());
-                bytes = transform(iface, TRANSFORMERS, bytes, true);
+                ArrayList<Class<? extends SolarisTransformer>> transformers = TRANSFORMERS.get(name).arrayify();
+                bytes = transform(iface, transformers, bytes, true);
             }
         }
 
@@ -89,42 +90,44 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
         return bytes;
     }
 
-    private byte[] transform(String name, Map<String, Class<? extends SolarisTransformer>> transformers, byte[] bytes, boolean overrides) {
+    private byte[] transform(String name, List<Class<? extends SolarisTransformer>> transformers, byte[] bytes, boolean overrides) {
         try {
             boolean modified = false;
-            Class<? extends SolarisTransformer> transformer = transformers.get(name);
-            SolarisTransformer instance = transformer.getDeclaredConstructor().newInstance();
-            ArrayList<String> methods = new ArrayList<>();
-            Arrays.stream(transformer.getDeclaredMethods()).iterator().forEachRemaining(method -> methods.add(method.getName()));
+            for (Class<? extends SolarisTransformer> transformer : transformers) {
+                SolarisBootstrap.LOGGER.debug("Transforming {} with transformer {}", name, transformer.getSimpleName());
+                SolarisTransformer instance = transformer.getDeclaredConstructor().newInstance();
+                ArrayList<String> methods = new ArrayList<>();
+                Arrays.stream(transformer.getDeclaredMethods()).iterator().forEachRemaining(method -> methods.add(method.getName()));
 
-            ClassNode node = new ClassNode();
-            ClassReader reader = new ClassReader(bytes);
-            reader.accept(node, 0);
-            ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+                ClassNode node = new ClassNode();
+                ClassReader reader = new ClassReader(bytes);
+                reader.accept(node, 0);
+                ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
 
-            Set<String> existing = new HashSet<>();
-            for (MethodNode method : node.methods) {
-                existing.add(method.name + method.desc);
-            }
-
-            if (methods.contains("solaris$metadata")) modified |= invoke(transformer, instance, node, null, "solaris$metadata");
-
-            if (overrides) {
-                modified |= superpatch(node, methods, existing);
-            }
-
-            for (MethodNode method : node.methods) {
-                String target = sanitize(method.name);
-                if (methods.contains(target) && (method.access & Opcodes.ACC_ABSTRACT) == 0) {
-                    if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Found method {}{}", method.name, method.desc);
-                    modified |= invoke(transformer, instance, node, method, target);
+                Set<String> existing = new HashSet<>();
+                for (MethodNode method : node.methods) {
+                    existing.add(method.name + method.desc);
                 }
-            }
 
-            if (modified) {
-                if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Modified class {}", name);
-                node.accept(writer);
-                bytes = writer.toByteArray();
+                if (methods.contains("solaris$metadata")) modified |= invoke(transformer, instance, node, null, "solaris$metadata");
+
+                if (overrides) {
+                    modified |= superpatch(node, methods, existing);
+                }
+
+                for (MethodNode method : node.methods) {
+                    String target = sanitize(method.name);
+                    if (methods.contains(target) && (method.access & Opcodes.ACC_ABSTRACT) == 0) {
+                        if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Found method {}{}", method.name, method.desc);
+                        modified |= invoke(transformer, instance, node, method, target);
+                    }
+                }
+
+                if (modified) {
+                    if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Modified class {}", name);
+                    node.accept(writer);
+                    bytes = writer.toByteArray();
+                }
             }
         } catch (Throwable exception) { // this is bad practice but fuck it
             if (!CASCADING) {
@@ -239,7 +242,7 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
         return modified;
     }
 
-    private byte[] retransform(String target, String name, Map<String, Class<? extends SolarisTransformer>> transformers, byte[] bytes, boolean overrides) {
+    private byte[] retransform(String target, String name, List<Class<? extends SolarisTransformer>> transformers, byte[] bytes, boolean overrides) {
         try {
             LOADER.loadClass(target);
             CASCADING = false;
@@ -251,8 +254,10 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
     }
 
     /** Log Transformer Registration */
-    static void LTR(String target, Class<? extends SolarisTransformer> clazz) {
-        SolarisBootstrap.LOGGER.debug("Registered class transformer {} targeting {}!", clazz.getSimpleName(), target);
+    static void LTR(String target, ChainedList<Class<? extends SolarisTransformer>> transformers) {
+        for (Class<? extends SolarisTransformer> clazz : transformers.arrayify()) {
+            SolarisBootstrap.LOGGER.debug("Registered class transformer {} targeting {}!", clazz.getSimpleName(), target);
+        }
     }
 
     static void parseTransformer(Class<? extends SolarisTransformer> clazz) {
@@ -260,8 +265,9 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
             Constructor<? extends SolarisTransformer> constructor = clazz.getConstructor();
             SolarisTransformer transformer = constructor.newInstance();
             String target = transformer.internal$transformerTarget();
-            if (transformer instanceof SolarisTransformer.Global) SUPERPATCHERS.put(target, clazz);
-            else TRANSFORMERS.put(target, clazz);
+            ChainedList<Class<? extends SolarisTransformer>> transformers = clazz.isAssignableFrom(SolarisTransformer.Global.class) ? SUPERPATCHERS.getOrDefault(target, new ChainedList<>()) : TRANSFORMERS.getOrDefault(target, new ChainedList<>());
+            if (transformer instanceof SolarisTransformer.Global) SUPERPATCHERS.put(target, transformers.add(clazz));
+            else TRANSFORMERS.put(target, transformers.add(clazz));
         } catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException exception) {
             SolarisBootstrap.oopsie(SolarisBootstrap.LOGGER, "FAILED LOADING CLASS TRANSFORMER: " + clazz.getSimpleName(), exception);
         }
@@ -366,26 +372,28 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
             if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Found potential target: {}", node.name);
             if (TRANSFORMERS.containsKey(node.name)) {
                 try {
-                    Class<? extends SolarisTransformer> transformer = TRANSFORMERS.get(node.name);
-                    SolarisTransformer instance = transformer.getDeclaredConstructor().newInstance();
-                    ArrayList<String> methods = new ArrayList<>();
-                    Arrays.stream(transformer.getDeclaredMethods()).iterator().forEachRemaining(method -> methods.add(method.getName()));
+                    ArrayList<Class<? extends SolarisTransformer>> transformers = TRANSFORMERS.get(node.name).arrayify();
+                    for (Class<? extends SolarisTransformer> transformer : transformers) {
+                        SolarisTransformer instance = transformer.getDeclaredConstructor().newInstance();
+                        ArrayList<String> methods = new ArrayList<>();
+                        Arrays.stream(transformer.getDeclaredMethods()).iterator().forEachRemaining(method -> methods.add(method.getName()));
 
-                    if (methods.contains("solaris$metadata")) {
-                        Method patcher = transformer.getDeclaredMethod("solaris$metadata", ClassNode.class);
-                        patcher.setAccessible(true);
-                        patcher.invoke(instance, node);
-                        if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Class metadata modified");
-                    }
-
-                    for (MethodNode method : node.methods) {
-                        String sanitized = sanitize(method.name);
-                        if (methods.contains(sanitized) && (method.access & Opcodes.ACC_ABSTRACT) == 0) {
-                            if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Found method {}{}", method.name, method.desc);
-                            Method patcher = transformer.getDeclaredMethod(sanitized, SolarisTransformer.TargetData.class);
+                        if (methods.contains("solaris$metadata")) {
+                            Method patcher = transformer.getDeclaredMethod("solaris$metadata", ClassNode.class);
                             patcher.setAccessible(true);
-                            patcher.invoke(instance, new SolarisTransformer.TargetData(node, method));
-                            if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Target method {}{}", method.name, method.desc);
+                            patcher.invoke(instance, node);
+                            if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Class metadata modified");
+                        }
+
+                        for (MethodNode method : node.methods) {
+                            String sanitized = sanitize(method.name);
+                            if (methods.contains(sanitized) && (method.access & Opcodes.ACC_ABSTRACT) == 0) {
+                                if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Found method {}{}", method.name, method.desc);
+                                Method patcher = transformer.getDeclaredMethod(sanitized, SolarisTransformer.TargetData.class);
+                                patcher.setAccessible(true);
+                                patcher.invoke(instance, new SolarisTransformer.TargetData(node, method));
+                                if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Target method {}{}", method.name, method.desc);
+                            }
                         }
                     }
                 } catch (ReflectiveOperationException exception) {
