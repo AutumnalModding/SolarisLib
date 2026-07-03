@@ -17,7 +17,7 @@ dependencies {
 
 	implementation 'net.bytebuddy:byte-buddy:1.14.10'
 	implementation "de.florianreuth:asmfabricloader:2.2.0"
-	implementation 'net.bytebuddy:byte-buddy-agent:1.14.10'
+	implementation include('net.bytebuddy:byte-buddy-agent:1.14.10')
 	implementation include('io.github.classgraph:classgraph:4.8.177')
 
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
