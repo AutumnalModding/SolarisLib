@@ -13,4 +13,12 @@ public interface ModelGenerator {
     String suffix();
     boolean valid(Identifier texture);
     List<Pair<String, String>> generate(Identifier texture);
+
+    static String path(String prefix, Identifier texture) {
+        return prefix + texture.getPath() + ".json";
+    }
+
+    static String model(String type, Identifier texture) {
+        return "\"" + texture.getNamespace() + ":" + type + "/" + texture.getPath() + "\"";
+    }
 }
