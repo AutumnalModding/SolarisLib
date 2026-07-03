@@ -33,7 +33,7 @@ public class SolarisNetworkHandler implements ModInitializer {
                 LOGGER.debug("Registering packet {}", clazz.getSimpleName());
                 Constructor<? extends SolarisPacket> constructor = clazz.getConstructor();
                 SolarisPacket packet = constructor.newInstance();
-                CustomPayload.Id<? extends SolarisPacket> id = (CustomPayload.Id<? extends SolarisPacket>) clazz.getDeclaredMethod("getId").invoke(packet);
+                CustomPayload.Id<? extends SolarisPacket> id = (CustomPayload.Id<? extends SolarisPacket>) clazz.getDeclaredMethod("ident").invoke(packet);
                 PacketCodec<RegistryByteBuf, ? extends SolarisPacket> codec = (PacketCodec<RegistryByteBuf, ? extends SolarisPacket>) clazz.getDeclaredMethod("codec").invoke(packet);
                 SolarisPacket.Direction direction = (SolarisPacket.Direction) clazz.getDeclaredMethod("direction").invoke(packet);
                 SolarisPacket.Handler<? extends SolarisPacket> handler = (SolarisPacket.Handler<? extends SolarisPacket>) clazz.getDeclaredMethod("handler").invoke(packet);

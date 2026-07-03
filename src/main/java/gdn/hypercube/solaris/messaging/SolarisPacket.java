@@ -10,6 +10,7 @@ public interface SolarisPacket extends CustomPayload {
     Direction direction();
     Handler<? extends SolarisPacket> handler();
     PacketCodec<RegistryByteBuf, ? extends SolarisPacket> codec();
+    CustomPayload.Id<? extends SolarisPacket> ident();
 
     enum Direction {
         server,
