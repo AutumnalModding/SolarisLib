@@ -31,7 +31,7 @@ public class BlockModelGenerator implements ModelGenerator {
             {
               "variants": {
                 "": {
-                  "model":\s""" + "\"" + model("block", texture) + """
+                  "model":\s""" + model("block", texture) + """
                 \n\s\s}
               \n\s\s}
             }
@@ -40,7 +40,7 @@ public class BlockModelGenerator implements ModelGenerator {
             {
               "model": {
                 "type": "minecraft:model",
-                "model":\s""" + "\"" + model("block", texture) + """
+                "model":\s""" + model("block", texture) + """
               \n\s\s}
             }
             """
@@ -48,7 +48,7 @@ public class BlockModelGenerator implements ModelGenerator {
             {
               "parent": "minecraft:block/cube_all",
               "textures": {
-                "all":\s""" + "\"" + model("block", texture) + """
+                "all":\s""" + model("block", texture) + """
               \n\s\s}
             }
         """)).arrayify();

@@ -4,6 +4,8 @@ import gdn.hypercube.solaris.core.ClasspathScanning;
 import gdn.hypercube.solaris.core.SolarisBootstrap;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -12,7 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
@@ -23,7 +24,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
-public class ResourcePackGenerator implements ModInitializer {
+public class ResourcePackGenerator implements PreLaunchEntrypoint {
     public static final Logger LOGGER = LogManager.getLogger("Solaris Asset Generator");
     public static final List<String> TARGETS = new ArrayList<>();
 
@@ -31,8 +32,7 @@ public class ResourcePackGenerator implements ModInitializer {
     private static final Map<String, ModelGenerator> GENERATORS = new HashMap<>();
 
     @Override
-    public void onInitialize() {
-        LOGGER.info("Extracting and copying assets...");
+    public void onPreLaunch() {
         FabricLoader loader = FabricLoader.getInstance();
         try {
             FileUtils.deleteDirectory(Path.of("resourcepacks/solaris").toFile());
@@ -49,50 +49,55 @@ public class ResourcePackGenerator implements ModInitializer {
             Files.writeString(Path.of("resourcepacks/solaris/pack.mcmeta"), PACK_METADATA);
         } catch (IOException ignored) {}
         TARGETS.forEach(mod -> {
+            LOGGER.debug("Scanning mod '{}' for possible textures...", mod);
             ModContainer container = loader.getModContainer(mod).orElseThrow();
             TYPES.forEach(type -> Path.of("resourcepacks/solaris/assets/" + mod + "/" + type).toFile().mkdirs());
             container.getOrigin().getPaths().forEach(path -> {
-                Path textures = path.resolve("assets/" + mod + "/textures/solaris");
-                if (!Files.isDirectory(textures)) {
-                    return;
-                }
-                try (Stream<Path> stream = Files.walk(textures)) {
-                    LOGGER.debug("Scanning mod '{}' for possible textures...", mod);
-                    stream
-                    .filter(sub -> sub.toString().endsWith(".png"))
-                    .forEach(sub -> {
-                        String there = sub.toString();
-                        String texture = FilenameUtils.getBaseName(there);
-                        String type = sub.getParent().getFileName().toString();
-                        LOGGER.debug("Searching for candidate generator for type '{}'.", type);
-                        ModelGenerator generator = GENERATORS.get(type);
-                        if (generator != null) {
-                            Identifier target = Identifier.of(mod, texture);
-                            LOGGER.debug("Generating texture for {}", target);
-                            if (generator.valid(target)) {
-                                generator.generate(target).forEach(model -> {
-                                    try {
-                                        Path output = Path.of("resourcepacks/solaris/assets/" + mod + model.getLeft());
-                                        LOGGER.debug("Writing model for {} to {}", target, output);
-                                        Files.createDirectories(output.getParent());
-                                        Files.writeString(output, model.getRight());
-                                    } catch (IOException exception) {
-                                        SolarisBootstrap.oopsie(LOGGER, "FAILED GENERATING MODELS FOR " + target, exception);
+                Path root = path.resolve("assets/" + mod + "/textures/solaris");
+                try (FileSystem fs = (path.toString().endsWith(".jar")) ? FileSystems.newFileSystem(path, (ClassLoader) null) : null) {
+                    Path textures = (fs != null) ? fs.getPath("/assets/" + mod + "/textures/solaris") : root;
+                    if (!Files.isDirectory(textures)) {
+                        return;
+                    }
+                    try (Stream<Path> stream = Files.walk(textures)) {
+                        stream
+                                .filter(sub -> sub.toString().endsWith(".png"))
+                                .forEach(sub -> {
+                                    String there = sub.toString();
+                                    String texture = FilenameUtils.getBaseName(there);
+                                    String type = sub.getParent().getFileName().toString();
+                                    LOGGER.debug("Searching for candidate generator for type '{}'.", type);
+                                    ModelGenerator generator = GENERATORS.get(type);
+                                    if (generator != null) {
+                                        Identifier target = Identifier.of(mod, texture);
+                                        LOGGER.debug("Generating texture for {}", target);
+                                        if (generator.valid(target)) {
+                                            generator.generate(target).forEach(model -> {
+                                                try {
+                                                    Path output = Path.of("resourcepacks/solaris/assets/" + mod + model.getLeft());
+                                                    LOGGER.debug("Writing model for {} to {}", target, output);
+                                                    Files.createDirectories(output.getParent());
+                                                    Files.writeString(output, model.getRight());
+                                                } catch (IOException exception) {
+                                                    SolarisBootstrap.oopsie(LOGGER, "FAILED GENERATING MODELS FOR " + target, exception);
+                                                }
+                                            });
+
+                                            Path relative = textures.relativize(sub);
+                                            Path destination = Path.of("resourcepacks/solaris/assets/" + mod + "/textures/").resolve(relative.toString());
+                                            try {
+                                                LOGGER.debug("Writing texture for {} to {}", target, destination);
+                                                Files.createDirectories(destination.getParent());
+                                                Files.copy(sub, destination, StandardCopyOption.REPLACE_EXISTING);
+                                            } catch (IOException exception) {
+                                                SolarisBootstrap.oopsie(LOGGER, "FAILED COPYING TEXTURE FOR " + target, exception);
+                                            }
+                                        }
                                     }
                                 });
-
-                                Path relative = textures.relativize(sub);
-                                Path destination = Path.of("resourcepacks/solaris/assets/" + mod + "/textures/").resolve(relative);
-                                try {
-                                    LOGGER.debug("Writing texture for {} to {}", target, destination);
-                                    Files.createDirectories(destination.getParent());
-                                    Files.copy(sub, destination, StandardCopyOption.REPLACE_EXISTING);
-                                } catch (IOException exception) {
-                                    SolarisBootstrap.oopsie(LOGGER, "FAILED COPYING TEXTURE FOR " + target, exception);
-                                }
-                            }
-                        }
-                    });
+                    } catch (IOException exception) {
+                        SolarisBootstrap.oopsie(LOGGER, "FAILED GENERATING RESOURCES", exception);
+                    }
                 } catch (IOException exception) {
                     SolarisBootstrap.oopsie(LOGGER, "FAILED GENERATING RESOURCES", exception);
                 }
@@ -101,7 +106,6 @@ public class ResourcePackGenerator implements ModInitializer {
     }
 
     static {
-        TARGETS.add("digamma");
         TYPES.add("items");
         TYPES.add("models/item");
 
