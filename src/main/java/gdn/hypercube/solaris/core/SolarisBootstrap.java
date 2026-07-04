@@ -1,7 +1,5 @@
 package gdn.hypercube.solaris.core;
 
-import gdn.hypercube.solaris.util.Priority;
-import java.util.Comparator;
 import java.util.List;
 import java.nio.file.Files;
 import java.nio.file.Paths;

@@ -59,18 +59,23 @@ public class ResourcePackGenerator implements ModInitializer {
                     if (!Files.isDirectory(textures)) {
                         return;
                     }
-                    try (Stream<Path> stream = Files.walk(textures)) {
-                        stream
+                    try (Stream<Path> kind = Files.list(textures)) {
+                        kind.forEach(that -> {
+                            try (Stream<Path> stream = Files.walk(that)) {
+                                stream
                                 .filter(sub -> sub.toString().endsWith(".png"))
                                 .forEach(sub -> {
-                                    String there = sub.toString();
-                                    String texture = FilenameUtils.getBaseName(there);
-                                    String type = sub.getParent().getFileName().toString();
+                                    String category = that.relativize(sub).toString();
+                                    String where = category.substring(0, category.lastIndexOf('.'));
+
+                                    String type = that.getFileName().toString();
                                     LOGGER.debug("Searching for candidate generator for type '{}'.", type);
                                     ModelGenerator generator = GENERATORS.get(type);
+
                                     if (generator != null) {
-                                        Identifier target = Identifier.of(mod, texture);
+                                        Identifier target = Identifier.of(mod, where);
                                         LOGGER.debug("Generating texture for {}", target);
+
                                         if (generator.valid(target)) {
                                             generator.generate(target).forEach(model -> {
                                                 try {
@@ -83,8 +88,8 @@ public class ResourcePackGenerator implements ModInitializer {
                                                 }
                                             });
 
-                                            Path relative = textures.relativize(sub);
-                                            Path destination = Path.of("resourcepacks/solaris/assets/" + mod + "/textures/").resolve(relative.toString());
+                                            Path there = textures.relativize(sub);
+                                            Path destination = Path.of("resourcepacks/solaris/assets/" + mod + "/textures/").resolve(there.toString());
                                             try {
                                                 LOGGER.debug("Writing texture for {} to {}", target, destination);
                                                 Files.createDirectories(destination.getParent());
@@ -95,6 +100,10 @@ public class ResourcePackGenerator implements ModInitializer {
                                         }
                                     }
                                 });
+                            } catch (IOException exception) {
+                                SolarisBootstrap.oopsie(LOGGER, "FAILED GENERATING RESOURCES", exception);
+                            }
+                        });
                     } catch (IOException exception) {
                         SolarisBootstrap.oopsie(LOGGER, "FAILED GENERATING RESOURCES", exception);
                     }

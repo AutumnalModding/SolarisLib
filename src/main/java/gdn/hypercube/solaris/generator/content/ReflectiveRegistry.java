@@ -5,17 +5,18 @@ import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
 import net.minecraft.util.Identifier;
 
 public abstract class ReflectiveRegistry<T> implements Registrar<T> {
-    final Class<T> type; // for caches
+    protected final Class<T> type; // for caches
     public final Registry<T> registry;
     protected final String mod;
     protected final Map<String, T> contents = new HashMap<>();
+    protected BiConsumer<String, T> registrar;
 
     @SuppressWarnings("unchecked")
     protected ReflectiveRegistry(String mod) {
@@ -24,13 +25,17 @@ public abstract class ReflectiveRegistry<T> implements Registrar<T> {
         ParameterizedType parameterized = (ParameterizedType) getClass().getGenericSuperclass();
         this.type = (Class<T>) parameterized.getActualTypeArguments()[0];
         try {
-            Field registry = Registries.class.getField(this.type.getSimpleName().toUpperCase());
+            Field registry = Registries.class.getField(this.type.getSimpleName().replaceAll("([a-z])([A-Z])", "$1_$2").toUpperCase());
             target = (Registry<T>) registry.get(null);
         } catch (ReflectiveOperationException exception) {
             SolarisBootstrap.oopsie(RegistryInitializer.LOGGER, "FAILED INITIALIZING REGISTRY FOR CLASS: " + this.type.getCanonicalName(), exception);
         }
 
         this.registry = target;
+        this.registrar = (name, obj) -> {
+            Registry.register(registry, Identifier.of(this.mod, name), obj);
+            RegistryInitializer.LOGGER.debug("Registered {} {}", this.type.getCanonicalName(), this.mod + ":" + name);
+        };
     }
 
     @Override
@@ -48,8 +53,8 @@ public abstract class ReflectiveRegistry<T> implements Registrar<T> {
     @Override
     public void init() {
         this.contents.forEach((name, obj) -> {
-            Registry.register(registry, Identifier.of(this.mod, name), obj);
-            RegistryInitializer.LOGGER.debug("Registered {} {}", this.registry.getClass().getCanonicalName(), this.mod + ":" + name);
+            this.registrar.accept(name, obj);
+            RegistryInitializer.LOGGER.debug("Registered {} {}", this.type.getCanonicalName(), this.mod + ":" + name);
         });
     }
 }
