@@ -1,6 +1,6 @@
 package de.florianreuth.asmfabricloader.api.event;
 
-// Stub incase AFL isn't present
+// mom can we've AFL? no, we've AFL at home
 public interface PrePrePreLaunchEntrypoint {
     void onLanguageAdapterLaunch();
 
