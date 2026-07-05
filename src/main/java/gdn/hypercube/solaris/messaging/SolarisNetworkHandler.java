@@ -1,5 +1,6 @@
 package gdn.hypercube.solaris.messaging;
 
+import gdn.hypercube.solaris.api.SolarisPacket;
 import gdn.hypercube.solaris.core.ClasspathScanning;
 import gdn.hypercube.solaris.core.SolarisTransformerLoader;
 import java.lang.reflect.Constructor;

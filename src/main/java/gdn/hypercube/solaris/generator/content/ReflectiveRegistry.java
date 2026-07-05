@@ -1,5 +1,6 @@
 package gdn.hypercube.solaris.generator.content;
 
+import gdn.hypercube.solaris.api.Registrar;
 import gdn.hypercube.solaris.core.SolarisTransformerLoader;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
@@ -56,6 +57,11 @@ public abstract class ReflectiveRegistry<T> implements Registrar<T> {
             this.registrar.accept(name, obj);
             RegistryInitializer.LOGGER.debug("Registered {} {}", this.type.getCanonicalName(), this.mod + ":" + name);
         });
+    }
+
+    @Override
+    public Class<T> type() {
+        return this.type;
     }
 }
 

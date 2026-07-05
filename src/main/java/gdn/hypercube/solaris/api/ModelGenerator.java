@@ -1,4 +1,4 @@
-package gdn.hypercube.solaris.generator.resource;
+package gdn.hypercube.solaris.api;
 
 import java.util.List;
 import net.minecraft.util.Identifier;

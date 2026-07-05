@@ -1,5 +1,6 @@
 package gdn.hypercube.solaris.core;
 
+import gdn.hypercube.solaris.api.SolarisTransformer;
 import gdn.hypercube.solaris.util.ChainedList;
 import java.io.IOException;
 import java.lang.instrument.ClassFileTransformer;
@@ -49,7 +50,7 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
     static TransformerMode MODE;
     private static boolean scanned = false;
 
-    private static String pp(Throwable target) {
+    public static String pp(Throwable target) {
         return target.getClass().getName().replaceAll("\\[", "");
     }
 

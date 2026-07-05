@@ -1,4 +1,4 @@
-package gdn.hypercube.solaris.messaging;
+package gdn.hypercube.solaris.api;
 
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.minecraft.entity.player.PlayerEntity;

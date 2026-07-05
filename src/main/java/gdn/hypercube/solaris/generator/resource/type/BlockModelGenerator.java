@@ -1,13 +1,13 @@
 package gdn.hypercube.solaris.generator.resource.type;
 
-import gdn.hypercube.solaris.generator.resource.ModelGenerator;
+import gdn.hypercube.solaris.api.ModelGenerator;
 import gdn.hypercube.solaris.util.ChainedList;
 import java.util.List;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 
-import static gdn.hypercube.solaris.generator.resource.ModelGenerator.path;
-import static gdn.hypercube.solaris.generator.resource.ModelGenerator.model;
+import static gdn.hypercube.solaris.api.ModelGenerator.path;
+import static gdn.hypercube.solaris.api.ModelGenerator.model;
 
 public class BlockModelGenerator implements ModelGenerator {
     @Override

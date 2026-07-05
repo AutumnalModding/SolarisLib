@@ -20,7 +20,8 @@
         "main": [
             "gdn.hypercube.solaris.messaging.SolarisNetworkHandler",
             "gdn.hypercube.solaris.generator.content.RegistryInitializer",
-            "gdn.hypercube.solaris.generator.resource.ResourcePackGenerator"
+            "gdn.hypercube.solaris.generator.resource.ResourcePackGenerator",
+            "gdn.hypercube.solaris.event.SolarisTimerHandler"
         ]
     },
     "depends": {

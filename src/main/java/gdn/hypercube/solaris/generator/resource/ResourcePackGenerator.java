@@ -1,5 +1,6 @@
 package gdn.hypercube.solaris.generator.resource;
 
+import gdn.hypercube.solaris.api.ModelGenerator;
 import gdn.hypercube.solaris.core.ClasspathScanning;
 import gdn.hypercube.solaris.core.SolarisTransformerLoader;
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package gdn.hypercube.solaris.core;
+package gdn.hypercube.solaris.api;
 
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;

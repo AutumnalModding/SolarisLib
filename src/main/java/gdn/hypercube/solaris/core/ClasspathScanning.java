@@ -51,7 +51,7 @@ public class ClasspathScanning {
 
             ScanResult result = graph.scan();
             ClassInfoList classes = (concrete ? result.getSubclasses(clazz) : result.getClassesImplementing(clazz))
-            .filter(ci -> !concrete || !ci.isAbstract());
+            .filter(info -> !concrete || (info.isStandardClass() && !info.isAbstract()));
             List<Class<T>> loaded = new ArrayList<>();
             for (ClassInfo target : classes) {
                 LOGGER.info("Found class {}. Loading it.", target.getName());

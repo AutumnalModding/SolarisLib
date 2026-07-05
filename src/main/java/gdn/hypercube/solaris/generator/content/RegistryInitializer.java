@@ -1,5 +1,6 @@
 package gdn.hypercube.solaris.generator.content;
 
+import gdn.hypercube.solaris.api.Registrar;
 import gdn.hypercube.solaris.core.ClasspathScanning;
 import gdn.hypercube.solaris.core.SolarisTransformerLoader;
 import java.lang.reflect.Constructor;
@@ -13,21 +14,21 @@ import org.apache.logging.log4j.Logger;
 
 public class RegistryInitializer implements ModInitializer {
     public static final Logger LOGGER = LogManager.getLogger("Solaris Registry Manager");
-    private static final Map<Class<?>, ReflectiveRegistry<?>> REGISTRIES = new LinkedHashMap<>();
+    private static final Map<Class<?>, Registrar<?>> REGISTRIES = new LinkedHashMap<>();
 
     @Override
     @SuppressWarnings("rawtypes")
     public void onInitialize() {
         LOGGER.info("Scanning and loading registries...");
-        List<Class<ReflectiveRegistry>> registries = ClasspathScanning.implementations(ReflectiveRegistry.class, true);
+        List<Class<Registrar>> registries = ClasspathScanning.implementations(Registrar.class, true);
         ClasspathScanning.prioritize(registries);
         registries.forEach(clazz -> {
             try {
-                Constructor<ReflectiveRegistry> constructor = clazz.getDeclaredConstructor();
+                Constructor<Registrar> constructor = clazz.getDeclaredConstructor();
                 constructor.setAccessible(true);
-                ReflectiveRegistry registrar = constructor.newInstance();
-                REGISTRIES.put(registrar.type, registrar);
-                LOGGER.debug("Initialized registry {} (for type {})", clazz.getCanonicalName(), registrar.type.getCanonicalName());
+                Registrar registrar = constructor.newInstance();
+                REGISTRIES.put(registrar.type(), registrar);
+                LOGGER.debug("Initialized registry {} (for type {})", clazz.getCanonicalName(), registrar.type().getCanonicalName());
             } catch (InvocationTargetException exception) {
                 SolarisTransformerLoader.oopsie(LOGGER, "FAILED INITIALIZING REGISTRAR: " + clazz.getSimpleName(), exception.getCause());
             } catch (ReflectiveOperationException exception) {
@@ -38,7 +39,7 @@ public class RegistryInitializer implements ModInitializer {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> ReflectiveRegistry<T> get(Class<T> type) {
-        return (ReflectiveRegistry<T>) REGISTRIES.get(type);
+    public static <T> Registrar<T> get(Class<T> type) {
+        return (Registrar<T>) REGISTRIES.get(type);
     }
 }
