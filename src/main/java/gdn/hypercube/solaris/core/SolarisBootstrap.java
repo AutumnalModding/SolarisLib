@@ -20,7 +20,7 @@ public class SolarisBootstrap implements PrePrePreLaunchEntrypoint {
                 Instrumentation agent = ByteBuddyAgent.install(provider);
                 agent.addTransformer(loader, true);
                 success = true;
-            } catch (NoClassDefFoundError ignored) {
+            } catch (LinkageError | IllegalStateException ignored) {
                 SolarisTransformerLoader.LOGGER.warn("Failed to actually load ByteBuddy. Falling back to mixin-mode.");
                 SolarisTransformerLoader.MODE = SolarisTransformerLoader.TransformerMode.MIXIN_ONLY;
             }

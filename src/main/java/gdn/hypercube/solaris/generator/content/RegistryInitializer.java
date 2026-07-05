@@ -20,7 +20,7 @@ public class RegistryInitializer implements ModInitializer {
     @SuppressWarnings("rawtypes")
     public void onInitialize() {
         LOGGER.info("Scanning and loading registries...");
-        List<Class<Registrar>> registries = ClasspathScanning.implementations(Registrar.class, true);
+        List<Class<Registrar>> registries = ClasspathScanning.implementations(Registrar.class, false);
         ClasspathScanning.prioritize(registries);
         registries.forEach(clazz -> {
             try {
