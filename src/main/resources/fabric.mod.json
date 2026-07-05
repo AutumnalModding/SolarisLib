@@ -17,9 +17,6 @@
         "afl:prePrePreLaunch": [
             "gdn.hypercube.solaris.core.SolarisBootstrap"
         ],
-        "preLaunch": [
-            "gdn.hypercube.solaris.core.SolarisBootstrap"
-        ],
         "main": [
             "gdn.hypercube.solaris.messaging.SolarisNetworkHandler",
             "gdn.hypercube.solaris.generator.content.RegistryInitializer",

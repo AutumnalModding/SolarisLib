@@ -1,10 +1,9 @@
 package de.florianreuth.asmfabricloader.api.event;
 
+import gdn.hypercube.solaris.util.UsedImplicitly;
+
 // mom can we've AFL? no, we've AFL at home
 public interface PrePrePreLaunchEntrypoint {
-    void onLanguageAdapterLaunch();
-
-    static String getEntrypointName() {
-        return "afl:prePrePreLaunch";
-    }
+    @UsedImplicitly void onLanguageAdapterLaunch();
+    @UsedImplicitly static String getEntrypointName() { return "afl:prePrePreLaunch"; }
 }

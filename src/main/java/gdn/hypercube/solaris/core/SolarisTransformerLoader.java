@@ -18,6 +18,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -37,11 +39,34 @@ import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
 public class SolarisTransformerLoader implements ClassFileTransformer, IMixinConfigPlugin {
+    public static final Logger LOGGER = LogManager.getLogger("Solaris Transformer System");
+    public static final boolean DEBUG = Files.exists(Paths.get(".classes/")) || System.getProperty("solaris.debug") != null;
     private static final Map<String, byte[]> CACHE = new HashMap<>();
     private static boolean CASCADING = false;
     static final ClassLoader LOADER = SolarisTransformerLoader.class.getClassLoader();
     static final Map<String, ChainedList<Class<? extends SolarisTransformer>>> TRANSFORMERS = new LinkedHashMap<>();
     static final Map<String, ChainedList<Class<? extends SolarisTransformer>>> SUPERPATCHERS = new LinkedHashMap<>();
+    static TransformerMode MODE;
+    private static boolean scanned = false;
+
+    private static String pp(Throwable target) {
+        return target.getClass().getName().replaceAll("\\[", "");
+    }
+
+    public static void oopsie(Logger logger, String message, Throwable cause) {
+        logger.fatal("/// SOMEBODY SET US UP THE BOMB ///");
+        logger.fatal(message);
+        if (cause != null) {
+            logger.fatal("CAUSE: {}: {}", pp(cause), cause.getMessage());
+            Throwable root = cause.getCause();
+            logger.fatal("ROOT CAUSE: {}: {}", (root == null ? "N/A" : pp(root)), (root == null ? "N/A" : root.getMessage()));
+            logger.fatal("DUMPING STACKTRACE...");
+            for (StackTraceElement element : cause.getStackTrace()) {
+                logger.fatal(element.toString());
+            }
+        }
+        logger.fatal("/// SOMEBODY SET US UP THE BOMB ///");
+    }
 
     @Override
     public byte[] transform(ClassLoader loader, String name, Class<?> clazz, ProtectionDomain domain, byte[] bytes) {
@@ -51,7 +76,7 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
         name = reader.getClassName();
 
         if ((node.access & Opcodes.ACC_INTERFACE) != 0) return bytes;
-        if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Loading: {}", name);
+        if (DEBUG) LOGGER.debug("Loading: {}", name);
 
         if (TRANSFORMERS.containsKey(name)) {
             ArrayList<Class<? extends SolarisTransformer>> transformers = TRANSFORMERS.get(name).arrayify();
@@ -71,21 +96,21 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
             }
         }
 
-        if (SolarisBootstrap.DEBUG) {
+        if (DEBUG) {
             Path root = Paths.get(".classes");
             Path dump = root.resolve(name + ".class").normalize();
             if (!dump.normalize().startsWith(root.normalize())) {
-                SolarisBootstrap.oopsie(SolarisBootstrap.LOGGER, "REFUSING TO DUMP CLASS OUTSIDE ROOT: " + name, null);
+                oopsie(LOGGER, "REFUSING TO DUMP CLASS OUTSIDE ROOT: " + name, null);
             }
             try {
                 Files.createDirectories(dump.getParent());
                 Files.write(dump, bytes);
             } catch (IOException exception) {
-                SolarisBootstrap.oopsie(SolarisBootstrap.LOGGER, "FAILED DUMPING CLASS: " + name, exception);
+                oopsie(LOGGER, "FAILED DUMPING CLASS: " + name, exception);
             }
         }
 
-        if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.trace("Storing class {} in cache.", name);
+        if (DEBUG) LOGGER.trace("Storing class {} in cache.", name);
         CACHE.put(name, bytes);
         return bytes;
     }
@@ -94,7 +119,7 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
         try {
             boolean modified = false;
             for (Class<? extends SolarisTransformer> transformer : transformers) {
-                SolarisBootstrap.LOGGER.debug("Transforming {} with transformer {}", name, transformer.getSimpleName());
+                LOGGER.debug("Transforming {} with transformer {}", name, transformer.getSimpleName());
                 SolarisTransformer instance = transformer.getDeclaredConstructor().newInstance();
                 ArrayList<String> methods = new ArrayList<>();
                 Arrays.stream(transformer.getDeclaredMethods()).iterator().forEachRemaining(method -> methods.add(method.getName()));
@@ -118,13 +143,13 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
                 for (MethodNode method : node.methods) {
                     String target = sanitize(method.name);
                     if (methods.contains(target) && (method.access & Opcodes.ACC_ABSTRACT) == 0) {
-                        if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Found method {}{}", method.name, method.desc);
+                        if (DEBUG) LOGGER.debug("Found method {}{}", method.name, method.desc);
                         modified |= invoke(transformer, instance, node, method, target);
                     }
                 }
 
                 if (modified) {
-                    if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Modified class {}", name);
+                    if (DEBUG) LOGGER.debug("Modified class {}", name);
                     node.accept(writer);
                     bytes = writer.toByteArray();
                 }
@@ -144,7 +169,7 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
                     }
                 }
             } else {
-                SolarisBootstrap.oopsie(SolarisBootstrap.LOGGER, "FAILED TRANSFORMING CLASS: " + name, exception);
+                oopsie(LOGGER, "FAILED TRANSFORMING CLASS: " + name, exception);
             }
         }
 
@@ -213,8 +238,8 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
                     String normalized = sanitize(override.name);
 
                     if (targets.contains(normalized)) {
-                        if (SolarisBootstrap.DEBUG) {
-                            SolarisBootstrap.LOGGER.debug("Adding override for superclass method {}{} from {}",
+                        if (DEBUG) {
+                            LOGGER.debug("Adding override for superclass method {}{} from {}",
                                     override.name, override.desc, current);
                         }
 
@@ -235,7 +260,7 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
             }
 
         } catch (Exception e) {
-            SolarisBootstrap.oopsie(SolarisBootstrap.LOGGER,
+            oopsie(LOGGER,
                     "Failed to process superclass methods for " + node.name, e);
         }
 
@@ -256,7 +281,7 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
     /** Log Transformer Registration */
     static void LTR(String target, ChainedList<Class<? extends SolarisTransformer>> transformers) {
         for (Class<? extends SolarisTransformer> clazz : transformers.arrayify()) {
-            SolarisBootstrap.LOGGER.debug("Registered class transformer {} targeting {}!", clazz.getSimpleName(), target);
+            LOGGER.debug("Registered class transformer {} targeting {}!", clazz.getSimpleName(), target);
         }
     }
 
@@ -269,7 +294,7 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
             if (transformer instanceof SolarisTransformer.Global) SUPERPATCHERS.put(target, transformers.add(clazz));
             else TRANSFORMERS.put(target, transformers.add(clazz));
         } catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException exception) {
-            SolarisBootstrap.oopsie(SolarisBootstrap.LOGGER, "FAILED LOADING CLASS TRANSFORMER: " + clazz.getSimpleName(), exception);
+            oopsie(LOGGER, "FAILED LOADING CLASS TRANSFORMER: " + clazz.getSimpleName(), exception);
         }
     }
 
@@ -282,26 +307,26 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
             Long node = null;
             if (method != null) {
                 hash = compute(method.instructions);
-                if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Modfiying target method {}{}", method.name, method.desc);
+                if (DEBUG) LOGGER.debug("Modfiying target method {}{}", method.name, method.desc);
             } else {
                 node = compute(clazz);
-                if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Modfiying class metadata");
+                if (DEBUG) LOGGER.debug("Modfiying class metadata");
             }
 
             patcher.invoke(instance, method != null ? new SolarisTransformer.TargetData(clazz, method) : clazz);
             boolean modified;
             if (hash != null) {
                 modified = hash != compute(method.instructions);
-                if (modified && SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Target method {}{} modified successfully", method.name, method.desc);
-                else if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Did not modify {}{}.", method.name, method.desc);
+                if (modified && DEBUG) LOGGER.debug("Target method {}{} modified successfully", method.name, method.desc);
+                else if (DEBUG) LOGGER.debug("Did not modify {}{}.", method.name, method.desc);
             } else {
                 modified = node != compute(clazz);
-                if (modified && SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Class metadata modified successfully");
-                else if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Did not modify class metadata.");
+                if (modified && DEBUG) LOGGER.debug("Class metadata modified successfully");
+                else if (DEBUG) LOGGER.debug("Did not modify class metadata.");
             }
             return modified;
         } catch (InvocationTargetException | NoSuchMethodException | IllegalAccessException exception) {
-            SolarisBootstrap.oopsie(SolarisBootstrap.LOGGER, "FAILED TRANSFORMING " + (method == null ? "CLASS METADATA" : "METHOD: " + method.name), exception);
+            oopsie(LOGGER, "FAILED TRANSFORMING " + (method == null ? "CLASS METADATA" : "METHOD: " + method.name), exception);
         }
 
         return false;
@@ -359,7 +384,9 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
     }
 
     @Override public void onLoad(String location) {
-        if (SolarisBootstrap.MODE == SolarisBootstrap.TransformerMode.MIXIN_ONLY) SolarisBootstrap.LOGGER.info("Loading Solaris in mixin-mode...");
+        if (MODE == TransformerMode.MIXIN_ONLY) {
+            LOGGER.info("Loading Solaris in mixin-mode...");
+        }
     }
 
     @Override public List<String> getMixins() { return null; }
@@ -368,8 +395,12 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
     @Override public boolean shouldApplyMixin(String target, String mixin) { return true; }
 
     @Override public void preApply(String target, ClassNode node, String mixin, IMixinInfo info) {
-        if (SolarisBootstrap.MODE == SolarisBootstrap.TransformerMode.MIXIN_ONLY) {
-            if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Found potential target: {}", node.name);
+        if (MODE == TransformerMode.MIXIN_ONLY) {
+            if (!scanned) {
+                scanned = true;
+                scan();
+            }
+            if (DEBUG) LOGGER.debug("Found potential target: {}", node.name);
             if (TRANSFORMERS.containsKey(node.name)) {
                 try {
                     ArrayList<Class<? extends SolarisTransformer>> transformers = TRANSFORMERS.get(node.name).arrayify();
@@ -382,26 +413,64 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
                             Method patcher = transformer.getDeclaredMethod("solaris$metadata", ClassNode.class);
                             patcher.setAccessible(true);
                             patcher.invoke(instance, node);
-                            if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Class metadata modified");
+                            if (DEBUG) LOGGER.debug("Class metadata modified");
                         }
 
                         for (MethodNode method : node.methods) {
                             String sanitized = sanitize(method.name);
                             if (methods.contains(sanitized) && (method.access & Opcodes.ACC_ABSTRACT) == 0) {
-                                if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Found method {}{}", method.name, method.desc);
+                                if (DEBUG) LOGGER.debug("Found method {}{}", method.name, method.desc);
                                 Method patcher = transformer.getDeclaredMethod(sanitized, SolarisTransformer.TargetData.class);
                                 patcher.setAccessible(true);
                                 patcher.invoke(instance, new SolarisTransformer.TargetData(node, method));
-                                if (SolarisBootstrap.DEBUG) SolarisBootstrap.LOGGER.debug("Target method {}{}", method.name, method.desc);
+                                if (DEBUG) LOGGER.debug("Target method {}{}", method.name, method.desc);
                             }
                         }
                     }
                 } catch (ReflectiveOperationException exception) {
-                    SolarisBootstrap.oopsie(SolarisBootstrap.LOGGER, "FAILED TRANSFORMING CLASS IN MIXIN MODE: " + target, exception);
+                    oopsie(LOGGER, "FAILED TRANSFORMING CLASS IN MIXIN MODE: " + target, exception);
                 }
             }
         }
     }
 
     @Override public void postApply(String target, ClassNode node, String mixin, IMixinInfo info) {}
+
+    public enum TransformerMode {
+        NONE,
+        MIXIN_ONLY,
+        JAVA_AGENT
+    }
+
+    static void scan() {
+        LOGGER.debug("Scanning class transformers...");
+        List<Class<SolarisTransformer.Class>> transformers = ClasspathScanning.implementations(SolarisTransformer.Class.class, false);
+        List<Class<SolarisTransformer.Global>> superpatchers = ClasspathScanning.implementations(SolarisTransformer.Global.class, false);
+        ClasspathScanning.prioritize(transformers);
+        ClasspathScanning.prioritize(superpatchers);
+        transformers.forEach(SolarisTransformerLoader::parseTransformer);
+        superpatchers.forEach(SolarisTransformerLoader::parseTransformer);
+        SolarisTransformerLoader.TRANSFORMERS.forEach(SolarisTransformerLoader::LTR);
+        SolarisTransformerLoader.SUPERPATCHERS.forEach(SolarisTransformerLoader::LTR);
+    }
+
+    static {
+        LOGGER.info("Spinning up...");
+
+        LOGGER.debug("Bootstrapping mode...");
+        MODE = switch (System.getProperty("solaris.patcher")) {
+            case "mixin" -> TransformerMode.MIXIN_ONLY;
+            case "none" -> TransformerMode.NONE;
+            case null, default -> {
+                try {
+                    java.lang.Class.forName("net.bytebuddy.agent.ByteBuddyAgent");
+                    java.lang.Class.forName("net.bytebuddy.agent.ByteBuddyAgent$AttachmentProvider");
+                    yield TransformerMode.JAVA_AGENT;
+                } catch (ClassNotFoundException ignored) {
+                    LOGGER.warn("ByteBuddy not found, falling back to mixin-mode.");
+                    yield TransformerMode.MIXIN_ONLY;
+                }
+            }
+        };
+    }
 }

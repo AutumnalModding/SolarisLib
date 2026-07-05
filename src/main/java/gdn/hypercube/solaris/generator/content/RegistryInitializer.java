@@ -1,10 +1,9 @@
 package gdn.hypercube.solaris.generator.content;
 
 import gdn.hypercube.solaris.core.ClasspathScanning;
-import gdn.hypercube.solaris.core.SolarisBootstrap;
+import gdn.hypercube.solaris.core.SolarisTransformerLoader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,9 +29,9 @@ public class RegistryInitializer implements ModInitializer {
                 REGISTRIES.put(registrar.type, registrar);
                 LOGGER.debug("Initialized registry {} (for type {})", clazz.getCanonicalName(), registrar.type.getCanonicalName());
             } catch (InvocationTargetException exception) {
-                SolarisBootstrap.oopsie(LOGGER, "FAILED INITIALIZING REGISTRAR: " + clazz.getSimpleName(), exception.getCause());
+                SolarisTransformerLoader.oopsie(LOGGER, "FAILED INITIALIZING REGISTRAR: " + clazz.getSimpleName(), exception.getCause());
             } catch (ReflectiveOperationException exception) {
-                SolarisBootstrap.oopsie(LOGGER, "FAILED INITIALIZING REGISTRAR: " + clazz.getSimpleName(), exception);
+                SolarisTransformerLoader.oopsie(LOGGER, "FAILED INITIALIZING REGISTRAR: " + clazz.getSimpleName(), exception);
             }
         });
         REGISTRIES.forEach((_, registry) -> registry.init());

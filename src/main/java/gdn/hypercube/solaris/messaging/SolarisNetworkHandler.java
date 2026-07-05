@@ -1,11 +1,9 @@
 package gdn.hypercube.solaris.messaging;
 
 import gdn.hypercube.solaris.core.ClasspathScanning;
-import gdn.hypercube.solaris.core.SolarisBootstrap;
+import gdn.hypercube.solaris.core.SolarisTransformerLoader;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
@@ -89,7 +87,7 @@ public class SolarisNetworkHandler implements ModInitializer {
 
                 registrar.invoke(null, id, instance);
             } catch (ReflectiveOperationException exception) {
-                SolarisBootstrap.oopsie(LOGGER, "FAILED REGISTERING PACKET: " + clazz.getSimpleName(), exception);
+                SolarisTransformerLoader.oopsie(LOGGER, "FAILED REGISTERING PACKET: " + clazz.getSimpleName(), exception);
             }
         });
     }

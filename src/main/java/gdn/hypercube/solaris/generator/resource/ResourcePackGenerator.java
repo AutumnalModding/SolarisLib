@@ -1,7 +1,7 @@
 package gdn.hypercube.solaris.generator.resource;
 
 import gdn.hypercube.solaris.core.ClasspathScanning;
-import gdn.hypercube.solaris.core.SolarisBootstrap;
+import gdn.hypercube.solaris.core.SolarisTransformerLoader;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.nio.file.FileSystem;
@@ -19,7 +19,6 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.util.Identifier;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -84,7 +83,7 @@ public class ResourcePackGenerator implements ModInitializer {
                                                     Files.createDirectories(output.getParent());
                                                     Files.writeString(output, model.getRight());
                                                 } catch (IOException exception) {
-                                                    SolarisBootstrap.oopsie(LOGGER, "FAILED GENERATING MODELS FOR " + target, exception);
+                                                    SolarisTransformerLoader.oopsie(LOGGER, "FAILED GENERATING MODELS FOR " + target, exception);
                                                 }
                                             });
 
@@ -95,20 +94,20 @@ public class ResourcePackGenerator implements ModInitializer {
                                                 Files.createDirectories(destination.getParent());
                                                 Files.copy(sub, destination, StandardCopyOption.REPLACE_EXISTING);
                                             } catch (IOException exception) {
-                                                SolarisBootstrap.oopsie(LOGGER, "FAILED COPYING TEXTURE FOR " + target, exception);
+                                                SolarisTransformerLoader.oopsie(LOGGER, "FAILED COPYING TEXTURE FOR " + target, exception);
                                             }
                                         }
                                     }
                                 });
                             } catch (IOException exception) {
-                                SolarisBootstrap.oopsie(LOGGER, "FAILED GENERATING RESOURCES", exception);
+                                SolarisTransformerLoader.oopsie(LOGGER, "FAILED GENERATING RESOURCES", exception);
                             }
                         });
                     } catch (IOException exception) {
-                        SolarisBootstrap.oopsie(LOGGER, "FAILED GENERATING RESOURCES", exception);
+                        SolarisTransformerLoader.oopsie(LOGGER, "FAILED GENERATING RESOURCES", exception);
                     }
                 } catch (IOException exception) {
-                    SolarisBootstrap.oopsie(LOGGER, "FAILED GENERATING RESOURCES", exception);
+                    SolarisTransformerLoader.oopsie(LOGGER, "FAILED GENERATING RESOURCES", exception);
                 }
             });
         });
@@ -127,7 +126,7 @@ public class ResourcePackGenerator implements ModInitializer {
                 LOGGER.info("Found model generator {} for type '{}'.", clazz.getCanonicalName(), suffix);
                 GENERATORS.putIfAbsent(suffix, instance);
             } catch (ReflectiveOperationException exception) {
-                SolarisBootstrap.oopsie(LOGGER, "FAILED INITIALIZING MODEL GENERATOR: " + clazz.getCanonicalName(), exception);
+                SolarisTransformerLoader.oopsie(LOGGER, "FAILED INITIALIZING MODEL GENERATOR: " + clazz.getCanonicalName(), exception);
             }
         });
     }

@@ -15,10 +15,10 @@ dependencies {
 	mappings "org.relativitymc:modern-yarn:26.1.2+build.1:v2"
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 
-	implementation 'net.bytebuddy:byte-buddy:1.14.10'
-	implementation "de.florianreuth:asmfabricloader:2.2.0"
-	implementation include('net.bytebuddy:byte-buddy-agent:1.14.10')
-	implementation include('io.github.classgraph:classgraph:4.8.177')
+	api 'net.bytebuddy:byte-buddy:1.14.10'
+	api "de.florianreuth:asmfabricloader:2.2.0"
+	api 'net.bytebuddy:byte-buddy-agent:1.14.10'
+	api include('io.github.classgraph:classgraph:4.8.177')
 
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
