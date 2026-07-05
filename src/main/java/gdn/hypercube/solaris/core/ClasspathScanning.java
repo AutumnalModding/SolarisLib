@@ -20,12 +20,15 @@ public class ClasspathScanning {
     private static final HashMap<Class<?>, List<Class<?>>> CACHE = new HashMap<>();
     public static final Logger LOGGER = LogManager.getLogger("Solaris Classpath Scanner");
 
+    @SuppressWarnings("unchecked")
     public static <T> List<Class<T>> implementations(Class<T> clazz, boolean concrete) {
-        boolean verbose = false;
+        boolean verbose = System.getProperty("solaris.verboseClasspathScanning") != null;
         LOGGER.debug("Scanning classpath for {}implementations of {}...", (concrete ? "concrete " : ""), clazz.getCanonicalName());
+        ClassLoader loader = clazz.getClassLoader();
         if (!CACHE.containsKey(clazz)) {
             ClassGraph graph = new ClassGraph()
                 .enableClassInfo()
+                .overrideClassLoaders(loader)
                 .rejectPackages("java.*")
                 .rejectPackages("javax.*")
                 .rejectPackages("sun.*")
@@ -54,10 +57,15 @@ public class ClasspathScanning {
             .filter(info -> !concrete || (info.isStandardClass() && !info.isAbstract()));
             List<Class<T>> loaded = new ArrayList<>();
             for (ClassInfo target : classes) {
-                LOGGER.info("Found class {}. Loading it.", target.getName());
-                loaded.add(target.loadClass(clazz));
+                LOGGER.debug("Found class {}. Loading it.", target.getName());
+                try {
+                    Class<T> that = (Class<T>) Class.forName(target.getName(), true, loader);
+                    loaded.add(that);
+                } catch (ReflectiveOperationException | IllegalArgumentException exception) {
+                    SolarisTransformerLoader.oopsie(LOGGER, "FAILED LOADING CLASS: " + target.getName(), exception);
+                }
             }
-            LOGGER.info("Found {} total {}implementations.", classes.size(), (concrete ? "concrete " : ""));
+            LOGGER.debug("Found {} total {}implementations.", loaded.size(), (concrete ? "concrete " : ""));
             __STORE(clazz, loaded);
             result.close();
         }

@@ -1,5 +1,6 @@
 package gdn.hypercube.solaris.api;
 
+
 import org.jspecify.annotations.NonNull;
 
 public interface TimerKey<T> extends Comparable<T> {

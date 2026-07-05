@@ -261,8 +261,7 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
             }
 
         } catch (Exception e) {
-            oopsie(LOGGER,
-                    "Failed to process superclass methods for " + node.name, e);
+            oopsie(LOGGER, "Failed to process superclass methods for " + node.name, e);
         }
 
         return modified;
@@ -457,7 +456,6 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
 
     static {
         LOGGER.info("Spinning up...");
-
         LOGGER.debug("Bootstrapping mode...");
         MODE = switch (System.getProperty("solaris.patcher")) {
             case "mixin" -> TransformerMode.MIXIN_ONLY;

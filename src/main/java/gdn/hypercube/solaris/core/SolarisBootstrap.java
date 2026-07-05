@@ -6,7 +6,6 @@ import de.florianreuth.asmfabricloader.api.event.PrePrePreLaunchEntrypoint;
 
 public class SolarisBootstrap implements PrePrePreLaunchEntrypoint {
     public void onLanguageAdapterLaunch() {
-        SolarisTransformerLoader.LOGGER.info("Spinning up...");
         SolarisTransformerLoader loader = new SolarisTransformerLoader();
         SolarisTransformerLoader.scan();
 
@@ -15,26 +14,12 @@ public class SolarisBootstrap implements PrePrePreLaunchEntrypoint {
             SolarisTransformerLoader.LOGGER.debug("Attempting to load ByteBuddy...");
             try {
                 ByteBuddyAgent.AttachmentProvider.Compound provider = new ByteBuddyAgent.AttachmentProvider.Compound(
-                        ByteBuddyAgent.AttachmentProvider.ForModularizedVm.INSTANCE,
-                        ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.JVM_ROOT,
-                        ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.JDK_ROOT,
-                        ByteBuddyAgent.AttachmentProvider.ForStandardToolsJarVm.MACINTOSH,
-                        ByteBuddyAgent.AttachmentProvider.ForUserDefinedToolsJar.INSTANCE
-                ); // <-- DEFAULT, minus JNA.
+                    ByteBuddyAgent.AttachmentProvider.ForModularizedVm.INSTANCE,
+                    ByteBuddyAgent.AttachmentProvider.ForJ9Vm.INSTANCE
+                );
                 Instrumentation agent = ByteBuddyAgent.install(provider);
                 agent.addTransformer(loader, true);
                 success = true;
-            } catch (ExceptionInInitializerError | IllegalStateException error) {
-                SolarisTransformerLoader.LOGGER.error("Failed to initialize agent with the standard method. Trying JNA. This might crash on Windows!");
-                try {
-                    java.lang.Class.forName("com.sun.jna.Native");
-                    Instrumentation agent = ByteBuddyAgent.install(ByteBuddyAgent.AttachmentProvider.ForEmulatedAttachment.INSTANCE);
-                    agent.addTransformer(loader, true);
-                    success = true;
-                } catch (ExceptionInInitializerError | IllegalStateException | UnsatisfiedLinkError |
-                         ClassNotFoundException failure) {
-                    SolarisTransformerLoader.oopsie(SolarisTransformerLoader.LOGGER, "Failed to initialize agent - here be dragons!", failure);
-                }
             } catch (NoClassDefFoundError ignored) {
                 SolarisTransformerLoader.LOGGER.warn("Failed to actually load ByteBuddy. Falling back to mixin-mode.");
                 SolarisTransformerLoader.MODE = SolarisTransformerLoader.TransformerMode.MIXIN_ONLY;

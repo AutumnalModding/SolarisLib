@@ -124,7 +124,7 @@ public class ResourcePackGenerator implements ModInitializer {
                 Constructor<ModelGenerator> constructor = clazz.getConstructor();
                 ModelGenerator instance = constructor.newInstance();
                 String suffix = instance.suffix();
-                LOGGER.info("Found model generator {} for type '{}'.", clazz.getCanonicalName(), suffix);
+                LOGGER.debug("Found model generator {} for type '{}'.", clazz.getCanonicalName(), suffix);
                 GENERATORS.putIfAbsent(suffix, instance);
             } catch (ReflectiveOperationException exception) {
                 SolarisTransformerLoader.oopsie(LOGGER, "FAILED INITIALIZING MODEL GENERATOR: " + clazz.getCanonicalName(), exception);
