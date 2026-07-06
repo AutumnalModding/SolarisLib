@@ -5,6 +5,7 @@ import gdn.hypercube.solaris.core.SolarisTransformerLoader;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
@@ -16,7 +17,7 @@ public abstract class ReflectiveRegistry<T> implements Registrar<T> {
     protected final Class<T> type; // for caches
     public final Registry<T> registry;
     protected final String mod;
-    protected final Map<String, T> contents = new HashMap<>();
+    protected final Map<String, T> contents = new LinkedHashMap<>();
     protected BiConsumer<String, T> registrar;
 
     @SuppressWarnings("unchecked")
