@@ -87,8 +87,14 @@ public class SolarisNetworkHandler implements ModInitializer {
                 );
 
                 registrar.invoke(null, id, instance);
-            } catch (ReflectiveOperationException exception) {
+            } catch (ReflectiveOperationException  exception) {
                 SolarisTransformerLoader.oopsie(LOGGER, "FAILED REGISTERING PACKET: " + clazz.getSimpleName(), exception);
+            } catch (RuntimeException | NoClassDefFoundError classload) {
+                if (classload instanceof RuntimeException runtime && runtime.getMessage().contains("Cannot load class net.minecraft") || classload instanceof NoClassDefFoundError) {
+                    LOGGER.debug("Ignoring incorrect-side classload failure for {}", clazz.getCanonicalName());
+                } else {
+                    throw classload;
+                }
             }
         });
     }
