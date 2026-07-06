@@ -4,7 +4,7 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
 public interface SolarisTransformer {
-    String internal$transformerTarget();
+    String solaris$target();
     record TargetData(ClassNode node, MethodNode method) {}
 
     interface Class extends SolarisTransformer {}

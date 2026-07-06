@@ -289,7 +289,7 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
         try {
             Constructor<? extends SolarisTransformer> constructor = clazz.getConstructor();
             SolarisTransformer transformer = constructor.newInstance();
-            String target = transformer.internal$transformerTarget();
+            String target = transformer.solaris$target();
             ChainedList<Class<? extends SolarisTransformer>> transformers = clazz.isAssignableFrom(SolarisTransformer.Global.class) ? SUPERPATCHERS.getOrDefault(target, new ChainedList<>()) : TRANSFORMERS.getOrDefault(target, new ChainedList<>());
             if (transformer instanceof SolarisTransformer.Global) SUPERPATCHERS.put(target, transformers.add(clazz));
             else TRANSFORMERS.put(target, transformers.add(clazz));
@@ -300,6 +300,7 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
 
     private static boolean invoke(Class<? extends SolarisTransformer> transformer, Object instance, ClassNode clazz, @Nullable MethodNode method, String target) {
         try {
+            if (method != null && method.name.contains("solaris$")) return false; // no ouroboros
             Method patcher = transformer.getDeclaredMethod(target, method == null ? ClassNode.class : SolarisTransformer.TargetData.class);
             patcher.setAccessible(true);
 
