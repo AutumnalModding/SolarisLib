@@ -34,10 +34,7 @@ public abstract class ReflectiveRegistry<T> implements Registrar<T> {
         }
 
         this.registry = target;
-        this.registrar = (name, obj) -> {
-            Registry.register(registry, Identifier.of(this.mod, name), obj);
-            RegistryInitializer.LOGGER.debug("Registered {} {}", this.type.getCanonicalName(), this.mod + ":" + name);
-        };
+        this.registrar = (name, obj) -> Registry.register(registry, Identifier.of(this.mod, name), obj);
     }
 
     @Override
