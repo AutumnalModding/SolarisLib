@@ -2,6 +2,7 @@ package gdn.hypercube.solaris.core;
 
 import gdn.hypercube.solaris.api.SolarisTransformer;
 import gdn.hypercube.solaris.util.ChainedList;
+import gdn.hypercube.solaris.util.DevelopmentOnly;
 import java.io.IOException;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.reflect.Constructor;
@@ -19,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import net.fabricmc.loader.api.FabricLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
@@ -55,14 +57,15 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
     }
 
     public static void oopsie(Logger logger, String message, Throwable cause) {
+        Throwable actual = cause instanceof InvocationTargetException ? cause.getCause() : cause;
         logger.fatal("/// SOMEBODY SET US UP THE BOMB ///");
         logger.fatal(message);
         if (cause != null) {
-            logger.fatal("CAUSE: {}: {}", pp(cause), cause.getMessage());
-            Throwable root = cause.getCause();
+            logger.fatal("CAUSE: {}: {}", pp(actual), actual.getMessage());
+            Throwable root = actual.getCause();
             logger.fatal("ROOT CAUSE: {}: {}", (root == null ? "N/A" : pp(root)), (root == null ? "N/A" : root.getMessage()));
             logger.fatal("DUMPING STACKTRACE...");
-            for (StackTraceElement element : cause.getStackTrace()) {
+            for (StackTraceElement element : actual.getStackTrace()) {
                 logger.fatal(element.toString());
             }
         }
@@ -393,7 +396,15 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
     @Override public List<String> getMixins() { return null; }
     @Override public String getRefMapperConfig() { return null; }
     @Override public void acceptTargets(Set<String> possible, Set<String> additional) {}
-    @Override public boolean shouldApplyMixin(String target, String mixin) { return true; }
+    @Override public boolean shouldApplyMixin(String target, String mixin) {
+        try {
+            Class<?> clazz = Class.forName(mixin, false, LOADER);
+            return !clazz.isAnnotationPresent(DevelopmentOnly.class) || FabricLoader.getInstance().isDevelopmentEnvironment();
+        } catch (ReflectiveOperationException exception) {
+            oopsie(LOGGER, "FAILED TO CHECK MIXIN STATUS: " + mixin + " (targeting " + target + ")", exception);
+            return false;
+        }
+    }
 
     @Override public void preApply(String target, ClassNode node, String mixin, IMixinInfo info) {
         if (MODE == TransformerMode.MIXIN_ONLY) {
@@ -428,6 +439,8 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
                             }
                         }
                     }
+                } catch (InvocationTargetException exception) {
+                    oopsie(LOGGER, "FAILED TRANSFORMING CLASS IN MIXIN MODE: " + target, exception.getCause());
                 } catch (ReflectiveOperationException exception) {
                     oopsie(LOGGER, "FAILED TRANSFORMING CLASS IN MIXIN MODE: " + target, exception);
                 }
