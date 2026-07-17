@@ -2,7 +2,7 @@ package gdn.hypercube.solaris.generator.resource.type;
 
 import gdn.hypercube.solaris.api.ModelGenerator;
 import gdn.hypercube.solaris.util.ChainedList;
-import gdn.hypercube.solaris.util.UsedImplicitly;
+import gdn.hypercube.solaris.data.UsedImplicitly;
 import java.util.List;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;

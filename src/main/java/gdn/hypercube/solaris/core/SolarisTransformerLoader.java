@@ -2,7 +2,8 @@ package gdn.hypercube.solaris.core;
 
 import gdn.hypercube.solaris.api.SolarisTransformer;
 import gdn.hypercube.solaris.util.ChainedList;
-import gdn.hypercube.solaris.util.DevelopmentOnly;
+import gdn.hypercube.solaris.data.DevelopmentOnly;
+import gdn.hypercube.solaris.util.MiscHelpers;
 import java.io.IOException;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.reflect.Constructor;
@@ -52,26 +53,6 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
     static TransformerMode MODE;
     private static boolean scanned = false;
 
-    public static String pp(Throwable target) {
-        return target.getClass().getName().replaceAll("\\[", "");
-    }
-
-    public static void oopsie(Logger logger, String message, Throwable cause) {
-        Throwable actual = cause instanceof InvocationTargetException ? cause.getCause() : cause;
-        logger.fatal("/// SOMEBODY SET US UP THE BOMB ///");
-        logger.fatal(message);
-        if (cause != null) {
-            logger.fatal("CAUSE: {}: {}", pp(actual), actual.getMessage());
-            Throwable root = actual.getCause();
-            logger.fatal("ROOT CAUSE: {}: {}", (root == null ? "N/A" : pp(root)), (root == null ? "N/A" : root.getMessage()));
-            logger.fatal("DUMPING STACKTRACE...");
-            for (StackTraceElement element : actual.getStackTrace()) {
-                logger.fatal(element.toString());
-            }
-        }
-        logger.fatal("/// SOMEBODY SET US UP THE BOMB ///");
-    }
-
     @Override
     public byte[] transform(ClassLoader loader, String name, Class<?> clazz, ProtectionDomain domain, byte[] bytes) {
         ClassNode node = new ClassNode();
@@ -104,13 +85,13 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
             Path root = Paths.get(".classes");
             Path dump = root.resolve(name + ".class").normalize();
             if (!dump.normalize().startsWith(root.normalize())) {
-                oopsie(LOGGER, "REFUSING TO DUMP CLASS OUTSIDE ROOT: " + name, null);
+                MiscHelpers.oopsie(LOGGER, "REFUSING TO DUMP CLASS OUTSIDE ROOT: " + name, null);
             }
             try {
                 Files.createDirectories(dump.getParent());
                 Files.write(dump, bytes);
             } catch (IOException exception) {
-                oopsie(LOGGER, "FAILED DUMPING CLASS: " + name, exception);
+                MiscHelpers.oopsie(LOGGER, "FAILED DUMPING CLASS: " + name, exception);
             }
         }
 
@@ -173,7 +154,7 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
                     }
                 }
             } else {
-                oopsie(LOGGER, "FAILED TRANSFORMING CLASS: " + name, exception);
+                MiscHelpers.oopsie(LOGGER, "FAILED TRANSFORMING CLASS: " + name, exception);
             }
         }
 
@@ -264,7 +245,7 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
             }
 
         } catch (Exception e) {
-            oopsie(LOGGER, "Failed to process superclass methods for " + node.name, e);
+            MiscHelpers.oopsie(LOGGER, "Failed to process superclass methods for " + node.name, e);
         }
 
         return modified;
@@ -297,7 +278,7 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
             if (transformer instanceof SolarisTransformer.Global) SUPERPATCHERS.put(target, transformers.add(clazz));
             else TRANSFORMERS.put(target, transformers.add(clazz));
         } catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException exception) {
-            oopsie(LOGGER, "FAILED LOADING CLASS TRANSFORMER: " + clazz.getSimpleName(), exception);
+            MiscHelpers.oopsie(LOGGER, "FAILED LOADING CLASS TRANSFORMER: " + clazz.getSimpleName(), exception);
         }
     }
 
@@ -330,7 +311,7 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
             }
             return modified;
         } catch (InvocationTargetException | NoSuchMethodException | IllegalAccessException exception) {
-            oopsie(LOGGER, "FAILED TRANSFORMING " + (method == null ? "CLASS METADATA" : "METHOD: " + method.name), exception);
+            MiscHelpers.oopsie(LOGGER, "FAILED TRANSFORMING " + (method == null ? "CLASS METADATA" : "METHOD: " + method.name), exception);
         }
 
         return false;
@@ -401,7 +382,7 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
             Class<?> clazz = Class.forName(mixin, false, LOADER);
             return !clazz.isAnnotationPresent(DevelopmentOnly.class) || FabricLoader.getInstance().isDevelopmentEnvironment();
         } catch (ReflectiveOperationException exception) {
-            oopsie(LOGGER, "FAILED TO CHECK MIXIN STATUS: " + mixin + " (targeting " + target + ")", exception);
+            MiscHelpers.oopsie(LOGGER, "FAILED TO CHECK MIXIN STATUS: " + mixin + " (targeting " + target + ")", exception);
             return false;
         }
     }
@@ -440,9 +421,9 @@ public class SolarisTransformerLoader implements ClassFileTransformer, IMixinCon
                         }
                     }
                 } catch (InvocationTargetException exception) {
-                    oopsie(LOGGER, "FAILED TRANSFORMING CLASS IN MIXIN MODE: " + target, exception.getCause());
+                    MiscHelpers.oopsie(LOGGER, "FAILED TRANSFORMING CLASS IN MIXIN MODE: " + target, exception.getCause());
                 } catch (ReflectiveOperationException exception) {
-                    oopsie(LOGGER, "FAILED TRANSFORMING CLASS IN MIXIN MODE: " + target, exception);
+                    MiscHelpers.oopsie(LOGGER, "FAILED TRANSFORMING CLASS IN MIXIN MODE: " + target, exception);
                 }
             }
         }

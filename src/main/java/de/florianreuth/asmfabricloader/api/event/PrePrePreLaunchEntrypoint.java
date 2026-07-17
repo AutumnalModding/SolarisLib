@@ -1,6 +1,6 @@
 package de.florianreuth.asmfabricloader.api.event;
 
-import gdn.hypercube.solaris.util.UsedImplicitly;
+import gdn.hypercube.solaris.data.UsedImplicitly;
 
 // mom can we've AFL? no, we've AFL at home
 public interface PrePrePreLaunchEntrypoint {

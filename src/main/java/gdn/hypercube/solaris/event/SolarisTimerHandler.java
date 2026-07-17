@@ -2,7 +2,7 @@ package gdn.hypercube.solaris.event;
 
 import gdn.hypercube.solaris.api.TimerKey;
 import gdn.hypercube.solaris.api.Triple;
-import gdn.hypercube.solaris.core.SolarisTransformerLoader;
+import gdn.hypercube.solaris.util.MiscHelpers;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -29,9 +29,9 @@ public class SolarisTimerHandler implements ModInitializer {
                         timer.setMiddle(timer.getMiddle() + 1);
                     } catch (Throwable throwable) {
                         LOGGER.warn("Timer {} failed to execute - check debug logs.", key.raw());
-                        LOGGER.debug("Cause: {}: {}", SolarisTransformerLoader.pp(throwable), throwable.getMessage());
+                        LOGGER.debug("Cause: {}: {}", MiscHelpers.prettify(throwable), throwable.getMessage());
                         Throwable root = throwable.getCause();
-                        LOGGER.debug("Root cause: {}: {}", (root == null ? "N/A" : SolarisTransformerLoader.pp(root)), (root == null ? "N/A" : root.getMessage()));
+                        LOGGER.debug("Root cause: {}: {}", (root == null ? "N/A" : MiscHelpers.prettify(root)), (root == null ? "N/A" : root.getMessage()));
                         LOGGER.debug("Stacktrace;");
                         for (StackTraceElement element : throwable.getStackTrace()) {
                             LOGGER.debug(element.toString());

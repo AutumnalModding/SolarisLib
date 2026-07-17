@@ -2,7 +2,7 @@ package gdn.hypercube.solaris.generator.resource;
 
 import gdn.hypercube.solaris.api.ModelGenerator;
 import gdn.hypercube.solaris.core.ClasspathScanning;
-import gdn.hypercube.solaris.core.SolarisTransformerLoader;
+import gdn.hypercube.solaris.util.MiscHelpers;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.nio.file.FileSystem;
@@ -47,7 +47,23 @@ public class ResourcePackGenerator implements ModInitializer {
             }
             """;
             Files.writeString(Path.of("resourcepacks/solaris/pack.mcmeta"), PACK_METADATA);
-        } catch (IOException ignored) {}
+
+            Path options = Path.of("options.txt");
+            List<String> data = Files.readAllLines(options);
+            String packs = data.stream()
+                .filter(line -> line.startsWith("resourcePacks:"))
+                .findFirst()
+                .orElseThrow();
+
+            if (!packs.contains("file/solaris")) {
+                int index = data.indexOf(packs);
+                packs = packs.replaceFirst("\\[\"", "[\"file/solaris\", \"");
+                data.set(index, packs);
+                Files.write(options, data);
+            }
+        } catch (IOException exception) {
+            MiscHelpers.oopsie(LOGGER, "FAILED INITIALIZING DYNAMIC RESOURCE PACK!", exception);
+        }
         TARGETS.forEach(mod -> {
             LOGGER.debug("Scanning mod '{}' for possible textures...", mod);
             ModContainer container = loader.getModContainer(mod).orElseThrow();
@@ -84,7 +100,7 @@ public class ResourcePackGenerator implements ModInitializer {
                                                     Files.createDirectories(output.getParent());
                                                     Files.writeString(output, model.getRight());
                                                 } catch (IOException exception) {
-                                                    SolarisTransformerLoader.oopsie(LOGGER, "FAILED GENERATING MODELS FOR " + target, exception);
+                                                    MiscHelpers.oopsie(LOGGER, "FAILED GENERATING MODELS FOR " + target, exception);
                                                 }
                                             });
 
@@ -95,20 +111,20 @@ public class ResourcePackGenerator implements ModInitializer {
                                                 Files.createDirectories(destination.getParent());
                                                 Files.copy(sub, destination, StandardCopyOption.REPLACE_EXISTING);
                                             } catch (IOException exception) {
-                                                SolarisTransformerLoader.oopsie(LOGGER, "FAILED COPYING TEXTURE FOR " + target, exception);
+                                                MiscHelpers.oopsie(LOGGER, "FAILED COPYING TEXTURE FOR " + target, exception);
                                             }
                                         }
                                     }
                                 });
                             } catch (IOException exception) {
-                                SolarisTransformerLoader.oopsie(LOGGER, "FAILED GENERATING RESOURCES", exception);
+                                MiscHelpers.oopsie(LOGGER, "FAILED GENERATING RESOURCES", exception);
                             }
                         });
                     } catch (IOException exception) {
-                        SolarisTransformerLoader.oopsie(LOGGER, "FAILED GENERATING RESOURCES", exception);
+                        MiscHelpers.oopsie(LOGGER, "FAILED GENERATING RESOURCES", exception);
                     }
                 } catch (IOException exception) {
-                    SolarisTransformerLoader.oopsie(LOGGER, "FAILED GENERATING RESOURCES", exception);
+                    MiscHelpers.oopsie(LOGGER, "FAILED GENERATING RESOURCES", exception);
                 }
             });
         });
@@ -127,7 +143,7 @@ public class ResourcePackGenerator implements ModInitializer {
                 LOGGER.debug("Found model generator {} for type '{}'.", clazz.getCanonicalName(), suffix);
                 GENERATORS.putIfAbsent(suffix, instance);
             } catch (ReflectiveOperationException exception) {
-                SolarisTransformerLoader.oopsie(LOGGER, "FAILED INITIALIZING MODEL GENERATOR: " + clazz.getCanonicalName(), exception);
+                MiscHelpers.oopsie(LOGGER, "FAILED INITIALIZING MODEL GENERATOR: " + clazz.getCanonicalName(), exception);
             }
         });
     }

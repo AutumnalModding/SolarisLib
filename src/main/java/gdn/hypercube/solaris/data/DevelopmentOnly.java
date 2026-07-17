@@ -1,12 +1,10 @@
-package gdn.hypercube.solaris.util;
+package gdn.hypercube.solaris.data;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Priority {
-    int value();
-}
+@Target({ElementType.TYPE, ElementType.CONSTRUCTOR, ElementType.FIELD, ElementType.METHOD})
+public @interface DevelopmentOnly {}

@@ -5,14 +5,10 @@ import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ClassInfoList;
 import io.github.classgraph.ScanResult;
-import java.io.File;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
-import net.fabricmc.loader.api.FabricLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -62,7 +58,7 @@ public class ClasspathScanning {
                     Class<T> that = (Class<T>) Class.forName(target.getName(), true, loader);
                     loaded.add(that);
                 } catch (ReflectiveOperationException | IllegalArgumentException exception) {
-                    SolarisTransformerLoader.oopsie(LOGGER, "FAILED LOADING CLASS: " + target.getName(), exception);
+                    MiscHelpers.oopsie(LOGGER, "FAILED LOADING CLASS: " + target.getName(), exception);
                 }
             }
             LOGGER.debug("Found {} total {}implementations.", loaded.size(), (concrete ? "concrete " : ""));

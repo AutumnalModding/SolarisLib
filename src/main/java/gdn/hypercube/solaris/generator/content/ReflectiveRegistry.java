@@ -1,7 +1,7 @@
 package gdn.hypercube.solaris.generator.content;
 
 import gdn.hypercube.solaris.api.Registrar;
-import gdn.hypercube.solaris.core.SolarisTransformerLoader;
+import gdn.hypercube.solaris.util.MiscHelpers;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.HashMap;
@@ -30,7 +30,7 @@ public abstract class ReflectiveRegistry<T> implements Registrar<T> {
             Field registry = Registries.class.getField(this.type.getSimpleName().replaceAll("([a-z])([A-Z])", "$1_$2").toUpperCase());
             target = (Registry<T>) registry.get(null);
         } catch (ReflectiveOperationException exception) {
-            SolarisTransformerLoader.oopsie(RegistryInitializer.LOGGER, "FAILED INITIALIZING REGISTRY FOR CLASS: " + this.type.getCanonicalName(), exception);
+            MiscHelpers.oopsie(RegistryInitializer.LOGGER, "FAILED INITIALIZING REGISTRY FOR CLASS: " + this.type.getCanonicalName(), exception);
         }
 
         this.registry = target;

@@ -1,4 +1,4 @@
-package gdn.hypercube.solaris.util;
+package gdn.hypercube.solaris.data;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
